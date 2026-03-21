@@ -18,14 +18,9 @@ function isValidEmail(email) {
 }
 
 function isValidPrice(price) {
-  if (typeof price !== 'number' && typeof price !== 'string') {
-    return false;
-  }
-  const normalized = String(price).trim();
-  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
-    return false;
-  }
-  return !Number.isNaN(Number(normalized));
+  if (typeof price !== 'number' && typeof price !== 'string') return false;
+  const s = String(price).trim();
+  return /^\d+(\.\d{1,2})?$/.test(s);
 }
 
 function normalizeAddress2(address2) {
@@ -61,7 +56,6 @@ function formatBook(row) {
 
 async function generateSummary(book) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-
   if (!apiKey) {
     return `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
   }
@@ -81,12 +75,7 @@ Return only the summary text.`;
       {
         model: 'claude-sonnet-4-20250514',
         max_tokens: 700,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
+        messages: [{ role: 'user', content: prompt }]
       },
       {
         headers: {
@@ -101,7 +90,6 @@ Return only the summary text.`;
     return response.data?.content?.[0]?.text ??
       `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
   } catch (err) {
-    console.error('LLM summary error:', err.response?.data || err.message);
     return `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
   }
 }
@@ -119,27 +107,20 @@ async function updateBookSummaryAsync(book) {
 }
 
 app.get('/', (req, res) => {
-  return res.status(200).send('Bookstore API is running');
+  res.status(200).send('Bookstore API is running');
 });
 
-// GET /status
 app.get('/status', (req, res) => {
-  return res.type('text/plain').status(200).send('OK');
+  res.type('text/plain').status(200).send('OK');
 });
 
-// POST /customers
 app.post('/customers', async (req, res) => {
   try {
     const { userId, name, phone, address, address2, city, state, zipcode } = req.body;
 
     if (
-      userId === undefined ||
-      name === undefined ||
-      phone === undefined ||
-      address === undefined ||
-      city === undefined ||
-      state === undefined ||
-      zipcode === undefined
+      userId === undefined || name === undefined || phone === undefined ||
+      address === undefined || city === undefined || state === undefined || zipcode === undefined
     ) {
       return res.status(400).end();
     }
@@ -154,9 +135,7 @@ app.post('/customers', async (req, res) => {
     );
 
     if (existing.rows.length > 0) {
-      return res.status(422).json({
-        message: 'This user ID already exists in the system.'
-      });
+      return res.status(422).json({ message: 'This user ID already exists in the system.' });
     }
 
     const storedAddress2 = normalizeAddress2(address2);
@@ -170,7 +149,7 @@ app.post('/customers', async (req, res) => {
 
     const newId = result.rows[0].id;
 
-    const customer = {
+    return res.status(201).location(`/customers/${newId}`).json({
       id: Number(newId),
       userId,
       name,
@@ -180,38 +159,25 @@ app.post('/customers', async (req, res) => {
       city,
       state,
       zipcode
-    };
-
-    return res
-      .status(201)
-      .location(`/customers/${newId}`)
-      .json(customer);
+    });
   } catch (err) {
     console.error('POST /customers error:', err);
     return res.status(400).end();
   }
 });
 
-// GET /customers/{id}
 app.get('/customers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!/^\d+$/.test(id)) {
-      return res.status(400).end();
-    }
+    if (!/^\d+$/.test(id)) return res.status(400).end();
 
     const result = await pool.query(
       `SELECT id, userId, name, phone, address, address2, city, state, zipcode
-       FROM Customers
-       WHERE id = $1`,
+       FROM Customers WHERE id = $1`,
       [id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).end();
-    }
-
+    if (result.rows.length === 0) return res.status(404).end();
     return res.status(200).json(formatCustomer(result.rows[0]));
   } catch (err) {
     console.error('GET /customers/:id error:', err);
@@ -219,26 +185,18 @@ app.get('/customers/:id', async (req, res) => {
   }
 });
 
-// GET /customers?userId=...
 app.get('/customers', async (req, res) => {
   try {
     const { userId } = req.query;
-
-    if (!userId || !isValidEmail(userId)) {
-      return res.status(400).end();
-    }
+    if (!userId || !isValidEmail(userId)) return res.status(400).end();
 
     const result = await pool.query(
       `SELECT id, userId, name, phone, address, address2, city, state, zipcode
-       FROM Customers
-       WHERE userId = $1`,
+       FROM Customers WHERE userId = $1`,
       [userId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).end();
-    }
-
+    if (result.rows.length === 0) return res.status(404).end();
     return res.status(200).json(formatCustomer(result.rows[0]));
   } catch (err) {
     console.error('GET /customers error:', err);
@@ -246,26 +204,19 @@ app.get('/customers', async (req, res) => {
   }
 });
 
-// POST /books
 app.post('/books', async (req, res) => {
   try {
     const { ISBN, title, Author, description, genre, price, quantity } = req.body;
 
     if (
-      ISBN === undefined ||
-      title === undefined ||
-      Author === undefined ||
-      description === undefined ||
-      genre === undefined ||
-      price === undefined ||
-      quantity === undefined
+      ISBN === undefined || title === undefined || Author === undefined ||
+      description === undefined || genre === undefined ||
+      price === undefined || quantity === undefined
     ) {
       return res.status(400).end();
     }
 
-    if (!isValidPrice(price)) {
-      return res.status(400).end();
-    }
+    if (!isValidPrice(price)) return res.status(400).end();
 
     const existing = await pool.query(
       'SELECT ISBN FROM Books WHERE ISBN = $1',
@@ -273,9 +224,7 @@ app.post('/books', async (req, res) => {
     );
 
     if (existing.rows.length > 0) {
-      return res.status(422).json({
-        message: 'This ISBN already exists in the system.'
-      });
+      return res.status(422).json({ message: 'This ISBN already exists in the system.' });
     }
 
     await pool.query(
@@ -284,7 +233,9 @@ app.post('/books', async (req, res) => {
       [ISBN, title, Author, description, genre, Number(price), Number(quantity), null]
     );
 
-    const book = {
+    updateBookSummaryAsync({ ISBN, title, Author, description, genre });
+
+    return res.status(201).location(`/books/${ISBN}`).json({
       ISBN,
       title,
       Author,
@@ -292,56 +243,34 @@ app.post('/books', async (req, res) => {
       genre,
       price: Number(price),
       quantity: Number(quantity)
-    };
-
-    updateBookSummaryAsync({
-      ISBN,
-      title,
-      Author,
-      description,
-      genre
     });
-
-    return res
-      .status(201)
-      .location(`/books/${ISBN}`)
-      .json(book);
   } catch (err) {
     console.error('POST /books error:', err);
     return res.status(400).end();
   }
 });
 
-// PUT /books/{ISBN}
 app.put('/books/:ISBN', async (req, res) => {
   try {
     const pathISBN = req.params.ISBN;
     const { ISBN, title, Author, description, genre, price, quantity } = req.body;
 
     if (
-      ISBN === undefined ||
-      title === undefined ||
-      Author === undefined ||
-      description === undefined ||
-      genre === undefined ||
-      price === undefined ||
-      quantity === undefined
+      ISBN === undefined || title === undefined || Author === undefined ||
+      description === undefined || genre === undefined ||
+      price === undefined || quantity === undefined
     ) {
       return res.status(400).end();
     }
 
-    if (!isValidPrice(price)) {
-      return res.status(400).end();
-    }
+    if (!isValidPrice(price)) return res.status(400).end();
 
     const existing = await pool.query(
       'SELECT ISBN FROM Books WHERE ISBN = $1',
       [pathISBN]
     );
 
-    if (existing.rows.length === 0) {
-      return res.status(404).end();
-    }
+    if (existing.rows.length === 0) return res.status(404).end();
 
     await pool.query(
       `UPDATE Books
@@ -374,10 +303,7 @@ async function getBookByISBN(res, ISBN) {
       [ISBN]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).end();
-    }
-
+    if (result.rows.length === 0) return res.status(404).end();
     return res.status(200).json(formatBook(result.rows[0]));
   } catch (err) {
     console.error('GET book error:', err);
@@ -385,12 +311,10 @@ async function getBookByISBN(res, ISBN) {
   }
 }
 
-// GET /books/isbn/{ISBN}
 app.get('/books/isbn/:ISBN', async (req, res) => {
   return getBookByISBN(res, req.params.ISBN);
 });
 
-// GET /books/{ISBN}
 app.get('/books/:ISBN', async (req, res) => {
   return getBookByISBN(res, req.params.ISBN);
 });
