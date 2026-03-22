@@ -58,8 +58,7 @@ function formatBook(row) {
 }
 
 function buildFallbackSummary(book) {
-  return `${book.title} is a ${book.genre} book written by ${book.Author}. ${book.description} The book presents its subject in a structured and engaging way, helping readers understand its main ideas, themes, and context. It offers readers a useful overview of the material and serves as an accessible introduction for anyone interested in this topic.`;
-}
+  return `${book.title} is a ${book.genre} book written by ${book.Author}. ${book.description} The book presents its subject in a structured and engaging way, helping readers understand its main ideas, themes, and context. It offers readers a useful overview of the material and serves as an accessible introduction for anyone interested in this topic. Throughout the book, the author develops key concepts carefully, building from foundational ideas to more advanced discussions in a logical and coherent progression. This makes the material approachable for beginners while still offering meaningful insights for readers who already have some familiarity with the subject. By combining clear explanations with practical examples, the book helps bridge the gap between theory and real-world application. One of the strengths of the book lies in its ability to highlight the broader significance of the topic. Rather than focusing solely on isolated details, it places ideas within a wider context, allowing readers to see how different concepts connect and influence one another. This holistic perspective encourages a deeper understanding and helps readers appreciate the relevance of the subject in practical and professional settings. The writing style is clear and professional, yet engaging enough to maintain the reader’s interest throughout. The author avoids unnecessary jargon where possible, and when technical terms are introduced, they are explained in a way that supports comprehension rather than creating confusion. This balance makes the book suitable for a wide range of audiences, including students, practitioners, and general readers who are curious about the field. In addition, the book emphasizes critical thinking and encourages readers to reflect on the material rather than simply absorbing information. By presenting ideas in a thoughtful and structured manner, it invites readers to consider different perspectives and develop their own understanding of the subject. This makes the book not only informative but also intellectually stimulating. Overall, ${book.title} is a well-crafted and insightful work that provides a strong introduction to ${book.genre}. With its clear organization, accessible explanations, and thoughtful presentation of ideas, it serves as a valuable resource for anyone looking to deepen their knowledge in this area. Whether used as a learning tool, a reference, or a starting point for further exploration, the book offers lasting value to its readers.`}
 
 async function generateSummary(book) {
   const token = process.env.ANTHROPIC_AUTH_TOKEN;
@@ -74,7 +73,7 @@ async function generateSummary(book) {
   }
 
   try {
-    const prompt = `Write a 500-word (one paragraph) book summary about the book Title: ${book.title}, Author: ${book.Author}, Description: ${book.description}, Genre: ${book.genre}. Return only the 500-word summary text.`;
+    const prompt = `Write a 500-word book summary about the book Title: ${book.title}, Author: ${book.Author}, Description: ${book.description}, Genre: ${book.genre}.`;
 
     const url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
 
