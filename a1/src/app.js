@@ -89,7 +89,7 @@ Return only the summary text.`;
       url,
       {
         model,
-        max_tokens: 700,
+        max_tokens: 1000,
         messages: [
           {
             role: 'user',
