@@ -74,14 +74,7 @@ async function generateSummary(book) {
   }
 
   try {
-    const prompt = `Write a clear and professional book summary of about 500 words based on the information below.
-
-Title: ${book.title}
-Author: ${book.Author}
-Description: ${book.description}
-Genre: ${book.genre}
-
-Return only the summary text.`;
+    const prompt = `Write a 500-word (one paragraph) book summary about the book Title: ${book.title}, Author: ${book.Author}, Description: ${book.description}, Genre: ${book.genre}. Return only the 500-word summary text.`;
 
     const url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
 
