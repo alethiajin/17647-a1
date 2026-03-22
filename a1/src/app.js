@@ -263,6 +263,10 @@ app.put('/books/:ISBN', async (req, res) => {
       return res.status(400).end();
     }
 
+    if (pathISBN !== ISBN) {
+      return res.status(400).end();
+    }
+
     if (!isValidPrice(price)) return res.status(400).end();
 
     const existing = await pool.query(
