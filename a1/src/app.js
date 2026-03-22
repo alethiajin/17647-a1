@@ -55,9 +55,15 @@ function formatBook(row) {
 }
 
 async function generateSummary(book) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
+  const token = process.env.ANTHROPIC_AUTH_TOKEN;
+  const baseUrl = process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com';
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-latest';
+
+  const fallback = `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
+
+  if (!token) {
+    console.error('ANTHROPIC_AUTH_TOKEN is missing');
+    return fallback;
   }
 
   try {
@@ -70,27 +76,55 @@ Genre: ${book.genre}
 
 Return only the summary text.`;
 
+    const url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
+
     const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
+      url,
       {
-        model: 'claude-sonnet-4-20250514',
+        model,
         max_tokens: 700,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
       },
       {
         headers: {
-          'x-api-key': apiKey,
+          'x-api-key': token,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json'
         },
-        timeout: 20000
+        timeout: 20000,
+        validateStatus: () => true
       }
     );
 
-    return response.data?.content?.[0]?.text ??
-      `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
+    const contentType = response.headers['content-type'] || '';
+
+    if (response.status < 200 || response.status >= 300) {
+      console.error('LLM summary error status:', response.status);
+      console.error('LLM summary error body:', response.data);
+      return fallback;
+    }
+
+    if (typeof response.data === 'string' || !contentType.includes('application/json')) {
+      console.error('Unexpected non-JSON response from LLM endpoint:', response.data);
+      return fallback;
+    }
+
+    const text = response.data?.content?.[0]?.text;
+
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      console.error('No summary text returned:', response.data);
+      return fallback;
+    }
+
+    return text.trim();
   } catch (err) {
-    return `Summary for "${book.title}" by ${book.Author}. ${book.description}`;
+    console.error('LLM summary error:', err.response?.data || err.message);
+    return fallback;
   }
 }
 
